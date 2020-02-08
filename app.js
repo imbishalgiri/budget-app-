@@ -59,7 +59,13 @@ const budgetController = ( () => {
 		},
 
 		deleteItem: (type, id) => {
+			let IDs, index;
+			IDs = data.allItems[type].map( allItemsType => allItemsType.id );
+			index = IDs.indexOf(id);
 
+			if (index !== -1) {
+				data.allItems[type].splice(index, 1);
+			}
 		},
 
 		calculateAmount: () =>  {
@@ -134,9 +140,11 @@ const UIController = ( () => {
 
 		// adding the element to the dom
 		document.querySelector(element).insertAdjacentHTML('beforeend', newHtml);
-			
 	  },
-	
+	  deleteListItems: idFromHtml => {
+		const element = document.getElementById(idFromHtml);
+		element.parentNode.removeChild(element);
+	  },		
 	  clearFields: () => {
 	  	let fields, fieldsArray;
 	  	fields = document.querySelectorAll(DOMStrings.inputValue + "," + DOMStrings.inputDescription);
@@ -175,7 +183,7 @@ const controller = ( (budgetCtrl, UICtrl) => {
 
 
 	let eventListeners = () => {
-		let DOMStrings = UIController.getDOMStrings();
+		let DOMStrings = UICtrl.getDOMStrings();
 		// handeling click
 		document.querySelector(DOMStrings.button).addEventListener('click', ctrlAddItem);
 		// handeling enter
@@ -190,30 +198,30 @@ const controller = ( (budgetCtrl, UICtrl) => {
 	let updateBudget = () => {
 
 		// 1. calculate the budget
-		budgetController.calculateAmount();
+		budgetCtrl.calculateAmount();
 
 		// 2. return the budget
-		let budget = budgetController.getBudget();
+		let budget = budgetCtrl.getBudget();
 
 		// 3. Display the budget on the user Interface
-		UIController.displayBudget(budget);
+		UICtrl.displayBudget(budget);
 	}
 
 
 	const ctrlAddItem = () => {
 		// 1. get the filled input data
-		let input = UIController.getInput();
+		let input = UICtrl.getInput();
 
 		if (input.description != '' && !isNaN(input.value) && input.value > 0 ){
 
 		// 2. add the item to the budget Controller
-		let newItem = budgetController.addItem(input.type,input.description, input.value);
+		let newItem = budgetCtrl.addItem(input.type,input.description, input.value);
 
 		// 3. add the new item to the user Interface
-		UIController.addListItems(newItem, input.type);
+		UICtrl.addListItems(newItem, input.type);
 		
 		// 4. clear the fields
-		UIController.clearFields();
+		UICtrl.clearFields();
   
  		// 5. calculate and update the budget
  		updateBudget();
@@ -225,19 +233,20 @@ const controller = ( (budgetCtrl, UICtrl) => {
 	const ctrlDeleteItem = event => {
 		let itemID, splitted, type, ID;
 		itemID = event.target.parentNode.parentNode.parentNode.parentNode.id;
-		console.log(itemID);
 
 		if(itemID) {
 			splitted = itemID.split('-');
 			type = splitted[0];
-			ID = splitted[1];
+			ID = parseInt(splitted[1]);
 
 			// 1. Delete the item from the data structure
-
+			budgetCtrl.deleteItem(type, ID);
 
 			// 2. Delete the item from the User Interface
+			UICtrl.deleteListItems(itemID);
 
 			// 3. Updata and display the new budget to the user 
+			updateBudget();
 		}
 	};
 
@@ -245,7 +254,7 @@ const controller = ( (budgetCtrl, UICtrl) => {
 		init: () => {
 			console.log('application started');
 			eventListeners();
-			UIController.displayBudget({
+			UICtrl.displayBudget({
 				budget: 0,
 				income: 0,
 				expense: 0,

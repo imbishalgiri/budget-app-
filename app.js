@@ -139,8 +139,28 @@ const UIController = ( () => {
 		expense: '.budget__expenses--value',
 		expensePercentage: '.budget__expenses--percentage',
 		container: '.container',
-		'expenses': '.item__percentage'
+		expenses: '.item__percentage',
+		dateLabel: '.budget__title--month'
+
 	}
+
+	const formatNumber = (num, type) => {
+		let numSplit, int, dec;
+		num = Math.abs(num);
+		num = num.toFixed(2);
+		numSplit = num.split('.');
+		int = numSplit[0];
+		dec = numSplit[1];
+
+		if (int.length > 3) {
+
+			int = `${int.substr(0,int.length - 3)} , ${int.substr(int.length - 3, 3)}`;
+		}
+
+		return `${type === 'exp' ? sign = '-' : sign = '+'} ${int}. ${dec}`;
+
+	  }
+
 
 	return {
 		getInput: () => {
@@ -164,7 +184,7 @@ const UIController = ( () => {
 	 	// replacing the above string
 	 	newHtml = html.replace('%id%', obj.id);
 	 	newHtml = newHtml.replace('%description%',obj.description);
-	 	newHtml = newHtml.replace('%value%', obj.value );
+	 	newHtml = newHtml.replace('%value%', formatNumber(obj.value, type));
 
 		// adding the element to the dom
 		document.querySelector(element).insertAdjacentHTML('beforeend', newHtml);
@@ -183,11 +203,10 @@ const UIController = ( () => {
 	  },
 
 	  displayBudget: (obj) => {
-	  	document.querySelector(DOMStrings.budgetValue).textContent = obj.budget;
-	  	document.querySelector(DOMStrings.income).textContent = obj.income;
-
-	  	
-	  	document.querySelector(DOMStrings.expense).textContent = '-' + obj.expense;
+	  	let type = obj.budget > 0 ? 'inc' : 'exp';
+	  	document.querySelector(DOMStrings.budgetValue).textContent = formatNumber(obj.budget, type);
+	  	document.querySelector(DOMStrings.income).textContent = formatNumber(obj.income, type);
+	  	document.querySelector(DOMStrings.expense).textContent = formatNumber(obj.expense, type);
 	  	
 	  	if (obj.percentage > 0 ){
 	  		document.querySelector(DOMStrings.expensePercentage).textContent = obj.percentage + '%';
@@ -214,6 +233,14 @@ const UIController = ( () => {
 			}
 		});
 
+	  },
+	  displayMonth: () => {
+		let now, year, month, monthIndex;
+		month = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september','october', 'november','december'];
+		now = new Date();
+		year = now.getFullYear();
+		monthIndex = now.getMonth();
+		document.querySelector(DOMStrings.dateLabel).textContent = `${month[monthIndex]}, ${year}`;
 	  },
 
 	  // Exporting thre DOMStrings
@@ -313,6 +340,7 @@ const controller = ( (budgetCtrl, UICtrl) => {
 	return {
 		init: () => {
 			console.log('application started');
+			UICtrl.displayMonth();
 			eventListeners();
 			UICtrl.displayBudget({
 				budget: 0,

@@ -7,6 +7,7 @@ const budgetController = ( () => {
 		this.id = id;
 		this.description = description;
 		this.value = value;
+		this.percentage = -1;
 	}
 
 	let Income = function(id, description, value) {
@@ -14,6 +15,19 @@ const budgetController = ( () => {
 		this.description = description;
 		this.value = value;
 	}
+
+	Expense.prototype.calculatePercentage = function(totalIncome) {
+		if (totalIncome > 0) {
+			this.percentage = Math.round(this.value / totalIncome * 100);
+		} else {
+			this.percentage = -1;
+		}
+	}
+
+	Expense.prototype.getPercentage = function() {
+		return this.percentage;
+	} 
+
 
 	let data = {
 		allItems: {
@@ -28,7 +42,7 @@ const budgetController = ( () => {
 		percentage: -1
 	}
 
-	let calculateTotal = (type) => {
+	const calculateTotal = (type) => {
 		let total = 0;
 		data.allItems[type].forEach( (element) => {
 			total += element.value;
@@ -80,6 +94,19 @@ const budgetController = ( () => {
 			    	data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
 
 		},
+		
+		calculatePercentages: () => {
+
+			data.allItems.exp.forEach( cur => {
+				cur.calculatePercentage(data.totals.inc);
+			})
+		},
+
+		getPercentages: () => {
+			let allPercentages = data.allItems.exp.map( cur => cur.getPercentage() );
+			return allPercentages;
+		},
+
 		getBudget: () => {
 			return {
 				budget: data.budget,
@@ -111,7 +138,8 @@ const UIController = ( () => {
 		income: '.budget__income--value',
 		expense: '.budget__expenses--value',
 		expensePercentage: '.budget__expenses--percentage',
-		container: '.container'
+		container: '.container',
+		'expenses': '.item__percentage'
 	}
 
 	return {
@@ -153,6 +181,7 @@ const UIController = ( () => {
 			current.value = "";
 	  	});
 	  },
+
 	  displayBudget: (obj) => {
 	  	document.querySelector(DOMStrings.budgetValue).textContent = obj.budget;
 	  	document.querySelector(DOMStrings.income).textContent = obj.income;
@@ -168,6 +197,25 @@ const UIController = ( () => {
 		
 	  },
 
+	  displayPercentages: percentage => {
+		let fields = document.querySelectorAll(DOMStrings.expenses);
+
+		const nodeListForEach = (list, callback) => {
+			for (let i = 0; i < list.length; i++ ) {
+				callback(list[i], i);
+			}
+		};
+
+		nodeListForEach(fields, (current, index) => {
+			if (percentage[index] > 0){
+				current.textContent = percentage[index] + '%';
+			} else {
+				current.textContent = '---';
+			}
+		});
+
+	  },
+
 	  // Exporting thre DOMStrings
 	  getDOMStrings: () => DOMStrings,
 	}
@@ -180,9 +228,7 @@ const UIController = ( () => {
 
 // module to communicate budgetController and UIConntroller
 const controller = ( (budgetCtrl, UICtrl) => {
-
-
-	let eventListeners = () => {
+	const eventListeners = () => {
 		let DOMStrings = UICtrl.getDOMStrings();
 		// handeling click
 		document.querySelector(DOMStrings.button).addEventListener('click', ctrlAddItem);
@@ -195,16 +241,24 @@ const controller = ( (budgetCtrl, UICtrl) => {
 		document.querySelector(DOMStrings.container).addEventListener('click', ctrlDeleteItem);
 	}
 
-	let updateBudget = () => {
-
+	const updateBudget = () => {
 		// 1. calculate the budget
 		budgetCtrl.calculateAmount();
-
 		// 2. return the budget
 		let budget = budgetCtrl.getBudget();
-
 		// 3. Display the budget on the user Interface
 		UICtrl.displayBudget(budget);
+	}
+
+	const updatePercentages = () => {
+		// 1. calculate the percentages
+		budgetCtrl.calculatePercentages();
+
+		// 2. return the percentages.
+		let percentages = budgetCtrl.getPercentages();
+
+		// 3. show percentages to the UI.
+		UICtrl.displayPercentages(percentages);
 	}
 
 
@@ -225,6 +279,9 @@ const controller = ( (budgetCtrl, UICtrl) => {
   
  		// 5. calculate and update the budget
  		updateBudget();
+
+ 		// Calculate and Update percentages 
+ 		updatePercentages();
 
  	  }
 
@@ -247,6 +304,9 @@ const controller = ( (budgetCtrl, UICtrl) => {
 
 			// 3. Updata and display the new budget to the user 
 			updateBudget();
+
+			// Calculate and Update percentages 
+ 			updatePercentages();
 		}
 	};
 
